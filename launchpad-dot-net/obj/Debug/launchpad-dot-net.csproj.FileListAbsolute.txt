@@ -1,0 +1,5 @@
+c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\bin\Debug\launchpad-dot-net.dll
+c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\bin\Debug\launchpad-dot-net.pdb
+c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csprojResolveAssemblyReference.cache
+c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.dll
+c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.pdb
