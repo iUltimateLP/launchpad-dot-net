@@ -20,15 +20,35 @@ namespace LaunchpadNET
             { Pitch.BNeg1, Pitch.C0, Pitch.CSharp0, Pitch.D0, Pitch.DSharp0, Pitch.E0, Pitch.F0, Pitch.FSharp0 }
         };
 
+        private Pitch[] rightLEDnotes = new Pitch[] {
+            Pitch.F6, Pitch.G5, Pitch.A4, Pitch.B3, Pitch.CSharp3, Pitch.DSharp2, Pitch.F1, Pitch.G0
+        };
+
         public InputDevice targetInput;
         public OutputDevice targetOutput;
 
         public delegate void LaunchpadKeyEventHandler(object source, LaunchpadKeyEventArgs e);
 
+        public delegate void LaunchpadCCKeyEventHandler(object source, LaunchpadCCKeyEventArgs e);
+
         /// <summary>
         /// Event Handler when a Launchpad Key is pressed.
         /// </summary>
         public event LaunchpadKeyEventHandler OnLaunchpadKeyPressed;
+        public event LaunchpadCCKeyEventHandler OnLaunchpadCCKeyPressed;
+
+        public class LaunchpadCCKeyEventArgs : EventArgs
+        {
+            private int val;
+            public LaunchpadCCKeyEventArgs(int _val)
+            {
+                val = _val;
+            }
+            public int GetVal()
+            {
+                return val;
+            }
+        }
 
         /// <summary>
         /// EventArgs for pressed Launchpad Key
@@ -52,12 +72,74 @@ namespace LaunchpadNET
             }
         }
 
+        /// <summary>
+        /// Creates a text scroll.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="speed"></param>
+        /// <param name="looping"></param>
+        /// <param name="velo"></param>
+        public void createTextScroll(string text, int speed, bool looping, int velo)
+        {
+            byte[] sysexHeader = { 240, 00, 32, 41, 2, 4 };
+            byte[] sysexStop = { 247 };
+            byte operation = 20;
+
+            byte _velocity = (byte)velo;
+            byte _speed = (byte)speed;
+            byte _loop = Convert.ToByte(looping);
+            byte[] _text = { };
+
+            byte[] finalArgs = { operation, _velocity, _loop, _speed };
+
+            List<byte> charList = new List<byte>();
+            foreach(char c in text)
+            {
+                int unicode = c;
+                if (unicode < 128)
+                    charList.Add(Convert.ToByte(unicode));
+            }
+            _text = charList.ToArray();
+
+            byte[] finalBytes = sysexHeader.Concat(finalArgs.Concat(_text.Concat(sysexStop))).ToArray();
+
+            targetOutput.SendSysEx(finalBytes);
+        }
+
+        public void stopLoopingTextScroll()
+        {
+            byte[] stop = { 240, 0, 32, 41, 2, 24, 20, 247 };
+            targetOutput.SendSysEx(stop);
+        }
+
+        private void sysExAnswer(SysExMessage m)
+        {
+            byte[] msg = m.Data;
+            byte[] stopBytes = { 240, 0, 32, 41, 2, 24, 21, 247 };
+        }
+
         private void midiPress(Midi.NoteOnMessage msg)
         {
-            if (OnLaunchpadKeyPressed != null)
+            if (OnLaunchpadKeyPressed != null && !rightLEDnotes.Contains(msg.Pitch))
             {
                 OnLaunchpadKeyPressed(this, new LaunchpadKeyEventArgs(midiNoteToLed(msg.Pitch)[0], midiNoteToLed(msg.Pitch)[1]));
             }
+            else if (OnLaunchpadKeyPressed != null && rightLEDnotes.Contains(msg.Pitch))
+            {
+                OnLaunchpadCCKeyPressed(this, new LaunchpadCCKeyEventArgs(midiNoteToSideLED(msg.Pitch)));
+            }
+        }
+
+        public int midiNoteToSideLED(Pitch p)
+        {
+            for (int y = 0; y <= 7; y++)
+            {
+                if (rightLEDnotes[y] == p)
+                {
+                    return y;
+                }
+            }
+            return 0;
         }
 
         /// <summary>
@@ -102,6 +184,50 @@ namespace LaunchpadNET
                     setLED(x, y, 0);
                 }
             }
+
+            for (int ry = 0; ry < 8; ry++)
+            {
+                setSideLED(ry, 0);
+            }
+
+            for (int tx = 1; tx < 9; tx++)
+            {
+                setTopLEDs(tx, 0);
+            }
+        }
+
+        /// <summary>
+        /// Fills Top Row LEDs.
+        /// </summary>
+        /// <param name="startX"></param>
+        /// <param name="endX"></param>
+        /// <param name="velo"></param>
+        public void fillTopLEDs(int startX, int endX, int velo)
+        {
+            for (int x = 1; x < 9; x++)
+            {
+                if (x >= startX && x <= endX)
+                {
+                    setTopLEDs(x, velo);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Fills a region of Side LEDs.
+        /// </summary>
+        /// <param name="startY"></param>
+        /// <param name="endY"></param>
+        /// <param name="velo"></param>
+        public void fillSideLEDs(int startY, int endY, int velo)
+        {
+            for (int y = 0; y < rightLEDnotes.Length; y++)
+            {
+                if (y >= startY && y <= endY)
+                {
+                    setSideLED(y, velo);
+                }
+            }
         }
 
         /// <summary>
@@ -114,9 +240,6 @@ namespace LaunchpadNET
         /// <param name="velo">Painting velocity</param>
         public void fillLEDs(int startX, int startY, int endX, int endY, int velo)
         {
-            Pitch startPitch = notes[startX, startY];
-            Pitch endPitch = notes[endX, endY];
-
             for (int x = 0; x < notes.Length; x++)
             {
                 for (int y = 0; y < notes.Length; y++)
@@ -125,6 +248,27 @@ namespace LaunchpadNET
                         setLED(x, y, velo);
                 }
             }
+        }
+
+        /// <summary>
+        /// Sets a Top LED of the launchpad
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="velo"></param>
+        public void setTopLEDs(int x, int velo)
+        {
+            byte[] data = { 240, 0, 32, 41, 2, 24, 10, Convert.ToByte(103+x), Convert.ToByte(velo), 247 };
+            targetOutput.SendSysEx(data);
+        }
+
+        /// <summary>
+        /// Sets a Side LED of the Launchpad.
+        /// </summary>
+        /// <param name="y">The height of the right Side LED.</param>
+        /// <param name="velo">Velocity index.</param>
+        public void setSideLED(int y, int velo)
+        {
+            targetOutput.SendNoteOn(Channel.Channel1, rightLEDnotes[y], velo);
         }
 
         /// <summary>
@@ -178,14 +322,11 @@ namespace LaunchpadNET
         /// <returns>Returns bool if connection was successful.</returns>
         public bool connect(LaunchpadDevice device)
         {
-            Console.WriteLine("Connecting");
             foreach(InputDevice id in Midi.InputDevice.InstalledDevices)
             {
-                Console.WriteLine("id.Name = " + id.Name.ToLower() + " device._midiName = " + device._midiName);
                 if (id.Name.ToLower() == device._midiName.ToLower())
                 {
                     targetInput = id;
-                    Console.WriteLine("Opening " + device._midiName);
                     id.Open();
                     targetInput.NoteOn += new InputDevice.NoteOnHandler(midiPress);
                     targetInput.StartReceiving(null);
@@ -196,7 +337,6 @@ namespace LaunchpadNET
                 if (od.Name.ToLower() == device._midiName.ToLower())
                 {
                     targetOutput = od;
-                    Console.WriteLine("Opening " + device._midiName);
                     od.Open();
                 }
             }
