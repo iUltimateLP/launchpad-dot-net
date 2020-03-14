@@ -4,6 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Midi;
+using Midi.Devices;
+using Midi.Enums;
+using Midi.Messages;
 
 namespace LaunchpadNET
 {
@@ -31,11 +34,16 @@ namespace LaunchpadNET
 
         public delegate void LaunchpadCCKeyEventHandler(object source, LaunchpadCCKeyEventArgs e);
 
+        public delegate void LaunchPadKeyDownHandler(object source, LaunchpadKeyEventArgs e);
+        public delegate void LaunchPadKeyUpHandler(object source, LaunchpadKeyEventArgs e);
+
         /// <summary>
         /// Event Handler when a Launchpad Key is pressed.
         /// </summary>
         public event LaunchpadKeyEventHandler OnLaunchpadKeyPressed;
         public event LaunchpadCCKeyEventHandler OnLaunchpadCCKeyPressed;
+        public event LaunchPadKeyDownHandler OnLaunchpadKeyDown;
+        public event LaunchPadKeyUpHandler OnLaunchpadKeyUp;
 
         public class LaunchpadCCKeyEventArgs : EventArgs
         {
@@ -118,14 +126,19 @@ namespace LaunchpadNET
             byte[] stopBytes = { 240, 0, 32, 41, 2, 24, 21, 247 };
         }
 
-        private void midiPress(Midi.NoteOnMessage msg)
+        private void midiPress(NoteOnMessage msg)
         {
-            if (OnLaunchpadKeyPressed != null && !rightLEDnotes.Contains(msg.Pitch))
-            {
-                OnLaunchpadKeyPressed(this, new LaunchpadKeyEventArgs(midiNoteToLed(msg.Pitch)[0], midiNoteToLed(msg.Pitch)[1]));
-            }
-            else if (OnLaunchpadKeyPressed != null && rightLEDnotes.Contains(msg.Pitch))
-            {
+            if (!rightLEDnotes.Contains(msg.Pitch)) {
+                if (OnLaunchpadKeyPressed != null) {
+                    OnLaunchpadKeyPressed(this, new LaunchpadKeyEventArgs(midiNoteToLed(msg.Pitch)[0], midiNoteToLed(msg.Pitch)[1]));                    
+                }
+                if (OnLaunchpadKeyUp != null && msg.Velocity == 0) {
+                    OnLaunchpadKeyUp(this, new LaunchpadKeyEventArgs(midiNoteToLed(msg.Pitch)[0], midiNoteToLed(msg.Pitch)[1]));
+                }
+                if (OnLaunchpadKeyDown != null && msg.Velocity == 127) {
+                    OnLaunchpadKeyDown(this, new LaunchpadKeyEventArgs(midiNoteToLed(msg.Pitch)[0], midiNoteToLed(msg.Pitch)[1]));
+                }
+            } else if (OnLaunchpadKeyPressed != null && rightLEDnotes.Contains(msg.Pitch)) {
                 OnLaunchpadCCKeyPressed(this, new LaunchpadCCKeyEventArgs(midiNoteToSideLED(msg.Pitch)));
             }
         }
@@ -192,7 +205,11 @@ namespace LaunchpadNET
 
             for (int tx = 1; tx < 9; tx++)
             {
-                setTopLEDs(tx, 0);
+                try {
+                    setTopLEDs(tx, 0);
+                } catch {
+
+                }
             }
         }
 
@@ -283,7 +300,7 @@ namespace LaunchpadNET
             {
                 targetOutput.SendNoteOn(Channel.Channel1, notes[x, y], velo);
             }
-            catch (Midi.DeviceException)
+            catch (DeviceException)
             {
                 Console.WriteLine("<< LAUNCHPAD.NET >> Midi.DeviceException");
                 throw;
@@ -298,18 +315,34 @@ namespace LaunchpadNET
         {
             List<LaunchpadDevice> tempDevices = new List<LaunchpadDevice>();
 
-            foreach (InputDevice id in Midi.InputDevice.InstalledDevices)
-            {
-                foreach (OutputDevice od in Midi.OutputDevice.InstalledDevices)
-                {
-                    if (id.Name == od.Name)
-                    {
-                        if (id.Name.ToLower().Contains("launchpad"))
-                        {
-                            tempDevices.Add(new LaunchpadDevice(id.Name));
+            if (DeviceManager.InputDevices.Where(d => d.Name.ToLower().Contains("launchpad")).Any()) {
+                //legacy search.
+                foreach (InputDevice id in DeviceManager.InputDevices) {
+                    foreach (OutputDevice od in DeviceManager.OutputDevices) {
+                        if (id.Name == od.Name) {
+                            if (id.Name.ToLower().Contains("launchpad")) {
+                                tempDevices.Add(new LaunchpadDevice(id.Name));
+                            }
                         }
                     }
                 }
+            } else {
+                string outName = String.Empty;
+                string inName = String.Empty;
+                foreach (InputDevice id in DeviceManager.InputDevices) {
+                    if (id.Name.ToLower().Contains("lpminimk3") && id.Name.ToLower().Contains("midiin")) {
+                        inName = id.Name;
+                        break;
+                    }
+                }
+                foreach (OutputDevice od in DeviceManager.OutputDevices) {
+                    if (od.Name.ToLower().Contains("lpminimk3") && od.Name.ToLower().Contains("midiout")) {
+                        outName = od.Name;
+                        break;
+                    }
+                }
+                if (!String.IsNullOrWhiteSpace(outName) && !String.IsNullOrWhiteSpace(inName))
+                    tempDevices.Add(new LaunchpadDevice(outName, inName));
             }
 
             return tempDevices.ToArray();
@@ -322,28 +355,35 @@ namespace LaunchpadNET
         /// <returns>Returns bool if connection was successful.</returns>
         public bool connect(LaunchpadDevice device)
         {
-            foreach(InputDevice id in Midi.InputDevice.InstalledDevices)
-            {
-                if (id.Name.ToLower() == device._midiName.ToLower())
-                {
+            string inName = String.Empty;
+            string outName = String.Empty;
+            if (device._isLegacy) {
+                inName = device._midiName.ToLower();
+                outName = inName;
+            } else {
+                inName = device._midiIn.ToLower();
+                outName = device._midiOut.ToLower(); ;
+            }
+            foreach (InputDevice id in DeviceManager.InputDevices)
+            {                
+                if (id.Name.ToLower() == inName) {
                     targetInput = id;
                     id.Open();
-                    targetInput.NoteOn += new InputDevice.NoteOnHandler(midiPress);
+                    targetInput.NoteOn += new NoteOnHandler(midiPress);
                     targetInput.StartReceiving(null);
-                }
+                }                
             }
-            foreach (OutputDevice od in Midi.OutputDevice.InstalledDevices)
+            foreach (OutputDevice od in DeviceManager.OutputDevices)
             {
-                if (od.Name.ToLower() == device._midiName.ToLower())
+                if (od.Name.ToLower() == outName)
                 {
                     targetOutput = od;
                     od.Open();
                 }
             }
 
-            return true; // targetInput.IsOpen && targetOutput.IsOpen;
+            return targetInput.IsOpen && targetOutput.IsOpen;
         }
-
         /// <summary>
         /// Disconnects a given LaunchpadDevice
         /// </summary>
@@ -360,14 +400,22 @@ namespace LaunchpadNET
             return !targetInput.IsOpen && !targetOutput.IsOpen;
         }
 
-        public class LaunchpadDevice
-        {
+        public class LaunchpadDevice {
             public string _midiName;
             //public int _midiDeviceId;
+            public string _midiOut;
+            public string _midiIn;
+            public bool _isLegacy;
 
-            public LaunchpadDevice(string name)
-            {
+            public LaunchpadDevice(string name) {
                 _midiName = name;
+                _isLegacy = false;
+            }
+
+            public LaunchpadDevice(string outName, string inName) {
+                _midiOut = outName;
+                _midiIn = inName;
+                _isLegacy = false;
             }
         }
     }

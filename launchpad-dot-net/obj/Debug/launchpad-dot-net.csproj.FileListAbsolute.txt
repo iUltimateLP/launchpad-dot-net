@@ -3,3 +3,11 @@ c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpa
 c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csprojResolveAssemblyReference.cache
 c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.dll
 c:\users\johnny\documents\visual studio 2015\Projects\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.pdb
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\bin\Debug\launchpad-dot-net.dll
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\bin\Debug\launchpad-dot-net.pdb
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\obj\Debug\launchpad-dot-net.csproj.CoreCompileInputs.cache
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\obj\Debug\launchpad-dot-net.csproj.CopyComplete
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\obj\Debug\launchpad-dot-net.dll
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\obj\Debug\launchpad-dot-net.pdb
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\bin\Debug\Midi.dll
+F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\obj\Debug\launchpad-dot-net.csprojAssemblyReference.cache
