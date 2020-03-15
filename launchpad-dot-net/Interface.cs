@@ -10,6 +10,9 @@ using Midi.Messages;
 
 namespace LaunchpadNET
 {
+
+    public enum LightingMode { Set, Flash, Pulse, RGB };
+
     public class Interface
     {
         private Pitch[,] notes = new Pitch[8, 8] {
@@ -44,6 +47,8 @@ namespace LaunchpadNET
         public event LaunchpadCCKeyEventHandler OnLaunchpadCCKeyPressed;
         public event LaunchPadKeyDownHandler OnLaunchpadKeyDown;
         public event LaunchPadKeyUpHandler OnLaunchpadKeyUp;
+
+        private byte[] sysexHeader;
 
         public bool Connected { get; set; }
 
@@ -89,9 +94,47 @@ namespace LaunchpadNET
         /// <param name="speed"></param>
         /// <param name="looping"></param>
         /// <param name="velo"></param>
+        public void createTextScrollMiniMk3(string text, int speed, bool looping, int velo) {
+            //order of the args is diff for this unit
+            byte[] sysexStop = { 247 };
+            byte operation = 7;
+            byte _velocity = (byte)velo;
+            byte _speed = (byte)speed;
+            byte _loop = Convert.ToByte(looping);
+            byte[] _text = { };
+            byte[] finalArgs = { operation, _loop, _speed, 0, _velocity };
+            List<byte> charList = new List<byte>();
+            foreach (char c in text) {
+                int unicode = c;
+                if (unicode < 128)
+                    charList.Add(Convert.ToByte(unicode));
+            }
+            _text = charList.ToArray();
+            byte[] finalBytes = sysexHeader.Concat(finalArgs.Concat(_text.Concat(sysexStop))).ToArray();
+
+            targetOutput.SendSysEx(finalBytes);
+        }
+
+        public void createTextScrollMiniMk3RGB(string text, int speed, bool looping, int r, int g, int b) {
+            //order of the args is diff for this unit
+            byte[] sysexStop = { 247 };
+            byte operation = 7;
+            byte[] _text = { };
+            byte[] finalArgs = { operation, Convert.ToByte(looping), (byte)speed, 1, (byte)r, (byte)g, (byte)b };
+            List<byte> charList = new List<byte>();
+            foreach (char c in text) {
+                int unicode = c;
+                if (unicode < 128)
+                    charList.Add(Convert.ToByte(unicode));
+            }
+            _text = charList.ToArray();
+            byte[] finalBytes = sysexHeader.Concat(finalArgs.Concat(_text.Concat(sysexStop))).ToArray();
+
+            targetOutput.SendSysEx(finalBytes);
+        }
+
         public void createTextScroll(string text, int speed, bool looping, int velo)
-        {
-            byte[] sysexHeader = { 240, 00, 32, 41, 2, 4 };
+        {            
             byte[] sysexStop = { 247 };
             byte operation = 20;
 
@@ -116,16 +159,20 @@ namespace LaunchpadNET
             targetOutput.SendSysEx(finalBytes);
         }
 
-        public void stopLoopingTextScroll()
-        {
-            byte[] stop = { 240, 0, 32, 41, 2, 24, 20, 247 };
+        public void stopLoopingTextScroll() {
+            byte[] stop = sysexHeader.Concat(new byte[]{20, 247}).ToArray();
+            targetOutput.SendSysEx(stop);
+        }
+
+        public void stopLoopingTextScrollMiniMk3() {
+            byte[] stop = sysexHeader.Concat(new byte[] { 7, 247 }).ToArray();
             targetOutput.SendSysEx(stop);
         }
 
         private void sysExAnswer(SysExMessage m)
         {
             byte[] msg = m.Data;
-            byte[] stopBytes = { 240, 0, 32, 41, 2, 24, 21, 247 };
+            byte[] stopBytes = sysexHeader.Concat(new byte[]{ 21, 247 }).ToArray();
         }
 
         private void midiPress(NoteOnMessage msg)
@@ -276,7 +323,7 @@ namespace LaunchpadNET
         /// <param name="velo"></param>
         public void setTopLEDs(int x, int velo)
         {
-            byte[] data = { 240, 0, 32, 41, 2, 24, 10, Convert.ToByte(103+x), Convert.ToByte(velo), 247 };
+            byte[] data = sysexHeader.Concat(new byte[]{ 10, Convert.ToByte(103+x), Convert.ToByte(velo), 247 }).ToArray();
             targetOutput.SendSysEx(data);
         }
 
@@ -285,9 +332,45 @@ namespace LaunchpadNET
         /// </summary>
         /// <param name="y">The height of the right Side LED.</param>
         /// <param name="velo">Velocity index.</param>
-        public void setSideLED(int y, int velo)
-        {
+        public void setSideLED(int y, int velo) {
             targetOutput.SendNoteOn(Channel.Channel1, rightLEDnotes[y], velo);
+        }
+
+        public void setSideLEDFlash(int y, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel2, rightLEDnotes[y], velo);
+        }
+
+        public void setSideLEDPulse(int y, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel3, rightLEDnotes[y], velo);
+        }
+
+        public void massUpdateLEDs(List<int> xs, List<int> ys, int velo, LightingMode mode = LightingMode.Set, int velo2 = 0, int velo3 = 0) {
+            if (xs.Count != ys.Count)
+                throw new Exception("count of xs and ys does not match");
+            byte[] sendbytes = sysexHeader.Concat(new byte[] { 3 }).ToArray();
+            for(int i = 0; i < xs.Count; i++) {
+                var note = ledToMidiNote(xs[i], ys[i]);
+                if (mode == LightingMode.Flash)
+                    sendbytes = sendbytes.Concat(new byte[] { (byte)mode, (byte)note, (byte)velo, (byte)velo2 }).ToArray();
+                else if (mode == LightingMode.RGB)
+                    sendbytes = sendbytes.Concat(new byte[] { (byte)mode, (byte)note, (byte)velo, (byte)velo2, (byte)velo3 }).ToArray();
+                else
+                    sendbytes = sendbytes.Concat(new byte[] { (byte)mode, (byte)note, (byte)velo }).ToArray();
+            }
+            sendbytes = sendbytes.Concat(new byte[] { 247 }).ToArray();
+            targetOutput.SendSysEx(sendbytes);
+        }
+
+        public void massUpdateLEDsRectangle(int startX, int startY, int endX, int endY, int velo, LightingMode mode = LightingMode.Set, int velo2 = 0, int velo3 = 0) {
+            List<int> xs = new List<int>();
+            List<int> ys = new List<int>();
+            for (int x = startX; x <= endX; x++){
+                for (int y = startY; y <= endY; y++) {
+                    xs.Add(x);
+                    ys.Add(y);
+                }
+            }
+            massUpdateLEDs(xs, ys, velo, mode, velo2, velo3);
         }
 
         /// <summary>
@@ -304,6 +387,24 @@ namespace LaunchpadNET
             }
             catch (DeviceException)
             {
+                Console.WriteLine("<< LAUNCHPAD.NET >> Midi.DeviceException");
+                throw;
+            }
+        }
+
+        public void setLEDFlash(int x, int y, int velo) {
+            try {
+                targetOutput.SendNoteOn(Channel.Channel2, notes[x, y], velo);
+            } catch (DeviceException) {
+                Console.WriteLine("<< LAUNCHPAD.NET >> Midi.DeviceException");
+                throw;
+            }
+        }
+
+        public void setLEDPulse(int x, int y, int velo) {
+            try {
+                targetOutput.SendNoteOn(Channel.Channel3, notes[x, y], velo);
+            } catch (DeviceException) {
                 Console.WriteLine("<< LAUNCHPAD.NET >> Midi.DeviceException");
                 throw;
             }
@@ -362,9 +463,11 @@ namespace LaunchpadNET
             if (device._isLegacy) {
                 inName = device._midiName.ToLower();
                 outName = inName;
+                sysexHeader = new byte[] { 240, 00, 32, 41, 2, 24 };
             } else {
                 inName = device._midiIn.ToLower();
                 outName = device._midiOut.ToLower(); ;
+                sysexHeader = new byte[] { 240, 00, 32, 41, 2, 13 };
             }
             foreach (InputDevice id in DeviceManager.InputDevices)
             {                
@@ -384,7 +487,7 @@ namespace LaunchpadNET
                 }
             }
             Connected = targetInput.IsOpen && targetOutput.IsOpen;
-            return targetInput.IsOpen && targetOutput.IsOpen;
+            return Connected;
         }
         /// <summary>
         /// Disconnects a given LaunchpadDevice
@@ -399,7 +502,8 @@ namespace LaunchpadNET
                 targetInput.Close();
                 targetOutput.Close();
             }
-            return !targetInput.IsOpen && !targetOutput.IsOpen;
+            Connected = !targetInput.IsOpen && !targetOutput.IsOpen;
+            return Connected;
         }
 
         public class LaunchpadDevice {
