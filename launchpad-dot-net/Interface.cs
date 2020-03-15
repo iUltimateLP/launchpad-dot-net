@@ -45,6 +45,8 @@ namespace LaunchpadNET
         public event LaunchPadKeyDownHandler OnLaunchpadKeyDown;
         public event LaunchPadKeyUpHandler OnLaunchpadKeyUp;
 
+        public bool Connected { get; set; }
+
         public class LaunchpadCCKeyEventArgs : EventArgs
         {
             private int val;
@@ -381,7 +383,7 @@ namespace LaunchpadNET
                     od.Open();
                 }
             }
-
+            Connected = targetInput.IsOpen && targetOutput.IsOpen;
             return targetInput.IsOpen && targetOutput.IsOpen;
         }
         /// <summary>
