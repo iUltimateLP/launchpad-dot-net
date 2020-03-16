@@ -13,6 +13,9 @@ namespace LaunchpadNET
 
     public enum LightingMode { Set, Flash, Pulse, RGB };
 
+    public enum SideLEDs { Zero = 89, One = 79, Two = 69, Three = 59, Four = 49, Five = 39, Six = 29, Seven = 19 }; //top to bottom
+    public enum TopLEDs { Up = 91, Down = 92, Left = 93, Right = 94, Session = 95, Drums = 96, Keys = 97, User = 98, Logo = 99 }; //match keys on MiniMk3
+
     public class Interface
     {
         private Pitch[,] notes = new Pitch[8, 8] {
@@ -30,27 +33,35 @@ namespace LaunchpadNET
             Pitch.F6, Pitch.G5, Pitch.A4, Pitch.B3, Pitch.CSharp3, Pitch.DSharp2, Pitch.F1, Pitch.G0
         };
 
+        private Pitch[] topLEDNotes = new Pitch[] {
+            Pitch.G6, Pitch.GSharp6, Pitch.A6, Pitch.ASharp6, Pitch.B6, Pitch.C7, Pitch.CSharp7, Pitch.D7, Pitch.DSharp7
+        };
+
         public InputDevice targetInput;
         public OutputDevice targetOutput;
 
-        public delegate void LaunchpadKeyEventHandler(object source, LaunchpadKeyEventArgs e);
+        public delegate void LaunchpadKeyEventHandler(object source, LaunchpadKeyEventArgs e);      
+        public delegate void LaunchpadKeyDownHandler(object source, LaunchpadKeyEventArgs e);
+        public delegate void LaunchpadKeyUpHandler(object source, LaunchpadKeyEventArgs e);
 
         public delegate void LaunchpadCCKeyEventHandler(object source, LaunchpadCCKeyEventArgs e);
-
-        public delegate void LaunchPadKeyDownHandler(object source, LaunchpadKeyEventArgs e);
-        public delegate void LaunchPadKeyUpHandler(object source, LaunchpadKeyEventArgs e);
+        public delegate void LaunchpadCCKeyDownHandler(object source, LaunchpadCCKeyEventArgs e);
+        public delegate void LaunchpadCCKeyUpHandler(object source, LaunchpadCCKeyEventArgs e);
 
         /// <summary>
         /// Event Handler when a Launchpad Key is pressed.
         /// </summary>
         public event LaunchpadKeyEventHandler OnLaunchpadKeyPressed;
         public event LaunchpadCCKeyEventHandler OnLaunchpadCCKeyPressed;
-        public event LaunchPadKeyDownHandler OnLaunchpadKeyDown;
-        public event LaunchPadKeyUpHandler OnLaunchpadKeyUp;
+        public event LaunchpadCCKeyDownHandler OnLaunchpadCCKeyDown;
+        public event LaunchpadCCKeyUpHandler OnLaunchpadCCKeyUp;
+        public event LaunchpadKeyDownHandler OnLaunchpadKeyDown;
+        public event LaunchpadKeyUpHandler OnLaunchpadKeyUp;
 
         private byte[] sysexHeader;
 
         public bool Connected { get; set; }
+        public bool IsLegacy { get; set; }
 
         public class LaunchpadCCKeyEventArgs : EventArgs
         {
@@ -62,6 +73,24 @@ namespace LaunchpadNET
             public int GetVal()
             {
                 return val;
+            }
+            public TopLEDs? GetTopLED() {
+                if (Enum.IsDefined(typeof(TopLEDs), val)) {
+                    foreach (TopLEDs e in Enum.GetValues(typeof(TopLEDs))) {
+                        if ((int)e == val)
+                            return e;
+                    }
+                }
+                return null;
+            }
+            public SideLEDs? GetSideLED() {
+                if (Enum.IsDefined(typeof(SideLEDs), val)) {
+                    foreach (SideLEDs e in Enum.GetValues(typeof(SideLEDs))) {
+                        if ((int)e == val)
+                            return e;
+                    }
+                }
+                return null;
             }
         }
 
@@ -94,6 +123,7 @@ namespace LaunchpadNET
         /// <param name="speed"></param>
         /// <param name="looping"></param>
         /// <param name="velo"></param>
+        /// </summary>
         public void createTextScrollMiniMk3(string text, int speed, bool looping, int velo) {
             //order of the args is diff for this unit
             byte[] sysexStop = { 247 };
@@ -115,6 +145,16 @@ namespace LaunchpadNET
             targetOutput.SendSysEx(finalBytes);
         }
 
+        /// <summary>
+        /// Creates a text scroll in full RGB colour
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="speed"></param>
+        /// <param name="looping"></param>
+        /// <param name="r"></param>
+        /// <param name="g"></param>
+        /// <param name="b"></param>
+        /// </summary>
         public void createTextScrollMiniMk3RGB(string text, int speed, bool looping, int r, int g, int b) {
             //order of the args is diff for this unit
             byte[] sysexStop = { 247 };
@@ -132,7 +172,14 @@ namespace LaunchpadNET
 
             targetOutput.SendSysEx(finalBytes);
         }
-
+        /// <summary>
+        /// Creates a text scroll.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="speed"></param>
+        /// <param name="looping"></param>
+        /// <param name="velo"></param>
+        /// </summary>
         public void createTextScroll(string text, int speed, bool looping, int velo)
         {            
             byte[] sysexStop = { 247 };
@@ -192,6 +239,18 @@ namespace LaunchpadNET
             }
         }
 
+        private void controlChangePress(ControlChangeMessage ccMsg) {
+            if (OnLaunchpadCCKeyPressed != null) {
+                OnLaunchpadCCKeyPressed(this, new LaunchpadCCKeyEventArgs((int)ccMsg.Control));
+            }
+            if (OnLaunchpadCCKeyDown != null && ccMsg.Value == 0) {
+                OnLaunchpadCCKeyDown(this, new LaunchpadCCKeyEventArgs((int)ccMsg.Control));
+            }
+            if (OnLaunchpadCCKeyUp != null && ccMsg.Value == 127) {
+                OnLaunchpadCCKeyUp(this, new LaunchpadCCKeyEventArgs((int)ccMsg.Control));
+            }
+        }
+
         public int midiNoteToSideLED(Pitch p)
         {
             for (int y = 0; y <= 7; y++)
@@ -239,27 +298,23 @@ namespace LaunchpadNET
 
         public void clearAllLEDs()
         {
-            for (int x = 0; x < 8; x++)
-            {
-                for (int y = 0; y < 8; y++)
-                {
-                    setLED(x, y, 0);
+            massUpdateLEDsRectangle(0, 0, 7, 7, 0);
+
+            if (IsLegacy) {
+                for (int ry = 0; ry < 8; ry++) {
+                    setSideLED(ry, 0);
                 }
-            }
-
-            for (int ry = 0; ry < 8; ry++)
-            {
-                setSideLED(ry, 0);
-            }
-
-            for (int tx = 1; tx < 9; tx++)
-            {
-                try {
-                    setTopLEDs(tx, 0);
-                } catch {
-
+                for (int tx = 1; tx < 9; tx++) {                    
+                    setTopLEDs(tx, 0);                    
                 }
-            }
+            } else {
+                foreach (SideLEDs side in Enum.GetValues(typeof(SideLEDs))) {
+                    setSideLED(side, 0);
+                }
+                foreach (TopLEDs top in Enum.GetValues(typeof(TopLEDs))) {
+                    setTopLED(top, 0);
+                }
+            }            
         }
 
         /// <summary>
@@ -327,6 +382,16 @@ namespace LaunchpadNET
             targetOutput.SendSysEx(data);
         }
 
+        public void setTopLED(TopLEDs led, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel1, (Pitch)led, velo);
+        }
+        public void setTopLEDFlash(TopLEDs led, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel2, (Pitch)led, velo);
+        }
+        public void setTopLEDPulse(TopLEDs led, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel3, (Pitch)led, velo);
+        }
+
         /// <summary>
         /// Sets a Side LED of the Launchpad.
         /// </summary>
@@ -336,12 +401,22 @@ namespace LaunchpadNET
             targetOutput.SendNoteOn(Channel.Channel1, rightLEDnotes[y], velo);
         }
 
+        public void setSideLED(SideLEDs led, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel1, (Pitch)led, velo);
+        }
+
         public void setSideLEDFlash(int y, int velo) {
             targetOutput.SendNoteOn(Channel.Channel2, rightLEDnotes[y], velo);
+        }
+        public void setSideLEDFlash(SideLEDs led, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel2, (Pitch)led, velo);
         }
 
         public void setSideLEDPulse(int y, int velo) {
             targetOutput.SendNoteOn(Channel.Channel3, rightLEDnotes[y], velo);
+        }
+        public void setSideLEDPulse(SideLEDs led, int velo) {
+            targetOutput.SendNoteOn(Channel.Channel3, (Pitch)led, velo);
         }
 
         public void massUpdateLEDs(List<int> xs, List<int> ys, int velo, LightingMode mode = LightingMode.Set, int velo2 = 0, int velo3 = 0) {
@@ -349,7 +424,16 @@ namespace LaunchpadNET
                 throw new Exception("count of xs and ys does not match");
             byte[] sendbytes = sysexHeader.Concat(new byte[] { 3 }).ToArray();
             for(int i = 0; i < xs.Count; i++) {
-                var note = ledToMidiNote(xs[i], ys[i]);
+                Pitch note;
+                if (xs[i] == 8 && ys[i] == 8) {
+                    note = topLEDNotes[8]; //logo is in the top list, special case
+                } else if (xs[i] == 8) {
+                    note = rightLEDnotes[ys[i]];
+                } else if (ys[i] == 8) {
+                    note = topLEDNotes[xs[i]];
+                } else {
+                    note = ledToMidiNote(xs[i], ys[i]);
+                }
                 if (mode == LightingMode.Flash)
                     sendbytes = sendbytes.Concat(new byte[] { (byte)mode, (byte)note, (byte)velo, (byte)velo2 }).ToArray();
                 else if (mode == LightingMode.RGB)
@@ -464,10 +548,12 @@ namespace LaunchpadNET
                 inName = device._midiName.ToLower();
                 outName = inName;
                 sysexHeader = new byte[] { 240, 00, 32, 41, 2, 24 };
+                IsLegacy = true;
             } else {
                 inName = device._midiIn.ToLower();
                 outName = device._midiOut.ToLower(); ;
                 sysexHeader = new byte[] { 240, 00, 32, 41, 2, 13 };
+                IsLegacy = false;
             }
             foreach (InputDevice id in DeviceManager.InputDevices)
             {                
@@ -475,6 +561,7 @@ namespace LaunchpadNET
                     targetInput = id;
                     id.Open();
                     targetInput.NoteOn += new NoteOnHandler(midiPress);
+                    targetInput.ControlChange += new ControlChangeHandler(controlChangePress);
                     targetInput.StartReceiving(null);
                 }                
             }
