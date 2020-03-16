@@ -392,6 +392,21 @@ namespace LaunchpadNET
             targetOutput.SendNoteOn(Channel.Channel3, (Pitch)led, velo);
         }
 
+        public void SetClock(int bpm) {
+            if (bpm < 40) {
+                throw new ArgumentOutOfRangeException("Beats per minute cannot be less than 40.");
+            } else if (bpm > 240) {
+                throw new ArgumentOutOfRangeException("Beats per minute cannot be more than 240.");
+            }
+            var numToSend = 24 * bpm;
+            var timeDiff = 60000 / numToSend;
+            byte[] data = sysexHeader.Concat(new byte[] { 248, 247 }).ToArray();
+            for (int i = 0; i <= 10; i++) {                
+                targetOutput.SendSysEx(data);
+                System.Threading.Thread.Sleep(timeDiff);
+            }
+        }
+
         /// <summary>
         /// Sets a Side LED of the Launchpad.
         /// </summary>
