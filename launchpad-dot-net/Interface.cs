@@ -392,7 +392,7 @@ namespace LaunchpadNET
             targetOutput.SendNoteOn(Channel.Channel3, (Pitch)led, velo);
         }
 
-        public void SetClock(int bpm) {
+        public void setClock(int bpm) {
             if (bpm < 40) {
                 throw new ArgumentOutOfRangeException("Beats per minute cannot be less than 40.");
             } else if (bpm > 240) {
