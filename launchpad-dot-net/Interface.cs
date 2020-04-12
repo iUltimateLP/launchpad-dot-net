@@ -516,36 +516,32 @@ namespace LaunchpadNET
         public LaunchpadDevice[] getConnectedLaunchpads()
         {
             List<LaunchpadDevice> tempDevices = new List<LaunchpadDevice>();
-
-            if (DeviceManager.InputDevices.Where(d => d.Name.ToLower().Contains("launchpad")).Any()) {
-                //legacy search.
-                foreach (InputDevice id in DeviceManager.InputDevices) {
-                    foreach (OutputDevice od in DeviceManager.OutputDevices) {
-                        if (id.Name == od.Name) {
-                            if (id.Name.ToLower().Contains("launchpad")) {
-                                tempDevices.Add(new LaunchpadDevice(id.Name));
-                            }
+            //legacy search.
+            foreach (InputDevice id in DeviceManager.InputDevices) {
+                foreach (OutputDevice od in DeviceManager.OutputDevices) {
+                    if (id.Name == od.Name) {
+                        if (id.Name.ToLower().Contains("launchpad")) {
+                            tempDevices.Add(new LaunchpadDevice(id.Name));
                         }
                     }
                 }
-            } else {
-                string outName = String.Empty;
-                string inName = String.Empty;
-                foreach (InputDevice id in DeviceManager.InputDevices) {
-                    if (id.Name.ToLower().Contains("lpminimk3") && id.Name.ToLower().Contains("midiin")) {
-                        inName = id.Name;
-                        break;
-                    }
+            }            
+            string outName = String.Empty;
+            string inName = String.Empty;
+            foreach (InputDevice id in DeviceManager.InputDevices) {
+                if (id.Name.ToLower().Contains("lpminimk3") && id.Name.ToLower().Contains("midiin")) {
+                    inName = id.Name;
+                    break;
                 }
-                foreach (OutputDevice od in DeviceManager.OutputDevices) {
-                    if (od.Name.ToLower().Contains("lpminimk3") && od.Name.ToLower().Contains("midiout")) {
-                        outName = od.Name;
-                        break;
-                    }
-                }
-                if (!String.IsNullOrWhiteSpace(outName) && !String.IsNullOrWhiteSpace(inName))
-                    tempDevices.Add(new LaunchpadDevice(outName, inName));
             }
+            foreach (OutputDevice od in DeviceManager.OutputDevices) {
+                if (od.Name.ToLower().Contains("lpminimk3") && od.Name.ToLower().Contains("midiout")) {
+                    outName = od.Name;
+                    break;
+                }
+            }
+            if (!String.IsNullOrWhiteSpace(outName) && !String.IsNullOrWhiteSpace(inName))
+                tempDevices.Add(new LaunchpadDevice(outName, inName));            
 
             return tempDevices.ToArray();
         }

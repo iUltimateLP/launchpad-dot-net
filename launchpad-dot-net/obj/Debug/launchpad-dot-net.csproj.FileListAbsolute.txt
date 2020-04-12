@@ -14,8 +14,8 @@ F:\VS Repos\launchpad-dot-net-master\launchpad-dot-net\obj\Debug\launchpad-dot-n
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\bin\Debug\launchpad-dot-net.dll
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\bin\Debug\launchpad-dot-net.pdb
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\bin\Debug\Midi.dll
-F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csprojAssemblyReference.cache
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csproj.CoreCompileInputs.cache
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csproj.CopyComplete
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.dll
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.pdb
+F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csprojAssemblyReference.cache
