@@ -613,7 +613,7 @@ namespace LaunchpadNET
 
             public LaunchpadDevice(string name) {
                 _midiName = name;
-                _isLegacy = false;
+                _isLegacy = true;
             }
 
             public LaunchpadDevice(string outName, string inName) {
