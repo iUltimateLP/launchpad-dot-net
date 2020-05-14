@@ -15,6 +15,7 @@ namespace LaunchpadNET
 
     public enum SideLEDs { Zero = 89, One = 79, Two = 69, Three = 59, Four = 49, Five = 39, Six = 29, Seven = 19 }; //top to bottom
     public enum TopLEDs { Up = 91, Down = 92, Left = 93, Right = 94, Session = 95, Drums = 96, Keys = 97, User = 98, Logo = 99 }; //match keys on MiniMk3
+    public enum LaunchpadMode { Live = 0, Programmer = 1 };
 
     public class Interface
     {
@@ -214,6 +215,15 @@ namespace LaunchpadNET
         public void stopLoopingTextScrollMiniMk3() {
             byte[] stop = sysexHeader.Concat(new byte[] { 7, 247 }).ToArray();
             targetOutput.SendSysEx(stop);
+        }
+        /// <summary>
+        /// Switches between programmer and live mode.
+        /// </summary>
+        /// <param name="mode">The mode to set the launchpad to. Can be Programmer or Live mode.</param>
+        /// </summary>
+        public void SetMode(LaunchpadMode mode) {
+            byte[] modeSet = sysexHeader.Concat(new byte[] { 14, (byte)mode, 247 }).ToArray();
+            targetOutput.SendSysEx(modeSet);
         }
 
         private void sysExAnswer(SysExMessage m)
