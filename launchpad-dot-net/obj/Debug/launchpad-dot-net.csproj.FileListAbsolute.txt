@@ -18,4 +18,3 @@ F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.cspr
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.dll
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.pdb
 F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csproj.CoreCompileInputs.cache
-F:\VS Repos\launchpad-dot-net\launchpad-dot-net\obj\Debug\launchpad-dot-net.csprojAssemblyReference.cache
