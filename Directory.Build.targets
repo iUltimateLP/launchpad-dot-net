@@ -1,0 +1,28 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WarningsAsErrors>0025;3239;FS0001;FS0020;FS0025;FS0026;FS0193;FS0049</WarningsAsErrors>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages> <!-- in some cases like JiraConnect, language folders like fr,ru,de get created and several dll files get created. this element prevents the files, but not the folders -->
+	<GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(OutputType)'=='Exe'">
+    <ItemGroup>
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\FSharp.Core.resources.dll" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\android-arm\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\android-arm64\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\android-x64\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\android-x86\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\ios\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\linux-x64\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\maccatalyst\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\osx-x64\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\osx\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\tvos\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\unix\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\win-x86\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\win-arm64\**" />
+		<FSharpCoreResourcesFiles Include="$(OutputPath)**\runtimes\win-arm\**" />
+      <FSharpCoreResourcesDirs Include="@(FSharpCoreResourcesFiles->'\%(Directory)') " />
+    </ItemGroup>
+    <RemoveDir Directories="@(FSharpCoreResourcesDirs)" />
+  </Target>
+</Project>
