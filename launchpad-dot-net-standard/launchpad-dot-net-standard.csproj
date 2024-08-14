@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>launchpad_dot_net_standard</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>launchpad-dot-net</PackageId>
+    <title>Launchpad DotNet</title>
+    <version>2.2.3</version>
+    <authors>Athene Allen, iUltimateLP, pstaszko</authors>
+    <Description>
+      An extension of iUltimateLP's Launchpad DotNet library that adds support for the Launchpad Mini Mk3 and enables SysEx support. Ported to dotnet standard by pstaszko.
+    </Description>
+    <PackageTags>launchpad, novation, midi, launchpad dotnet, music</PackageTags>
+    <RepositoryUrl>
+      https://github.com/gnargle/launchpad-dot-net/
+    </RepositoryUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Melanchall.DryWetMidi" Version="7.1.0" />
+  </ItemGroup>
+</Project>

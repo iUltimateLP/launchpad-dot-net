@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 14 for Windows Desktop
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34902.65
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "launchpad-dot-net", "launchpad-dot-net\launchpad-dot-net.csproj", "{2784C4AF-3B96-471B-91B0-1A11C342D375}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "launchpad-dot-net", "launchpad-dot-net-standard\launchpad-dot-net-standard.csproj", "{2784C4AF-3B96-471B-91B0-1A11C342D375}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "launchpad-test", "launchpad-test\launchpad-test.csproj", "{601E472C-A326-4B39-BC63-4663A2983A50}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{2784C4AF-3B96-471B-91B0-1A11C342D375}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2784C4AF-3B96-471B-91B0-1A11C342D375}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2784C4AF-3B96-471B-91B0-1A11C342D375}.Release|Any CPU.Build.0 = Release|Any CPU
+		{601E472C-A326-4B39-BC63-4663A2983A50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{601E472C-A326-4B39-BC63-4663A2983A50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{601E472C-A326-4B39-BC63-4663A2983A50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{601E472C-A326-4B39-BC63-4663A2983A50}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
